@@ -56,7 +56,7 @@ You need to replace `<VALUE GOES HERE>` with the relevant keys obtained from YOU
 * [data.nasdaq.com](https://data.nasdaq.com)
 
 
-Note: Although the scripts use get_bars for Alpaca Markets, as a precaution, the code has forcibly set the Alpaca Markets api Base URL to the paper trading environment "paper-api.alpaca.markets", to avoid any unintended consequence if using the real live interface.
+Note: Although the scripts use get_bars for Alpaca Markets, as a precaution, the code has forcibly set the Alpaca Markets api Base URL to the paper trading environment "paper-api.alpaca.markets", to avoid any unintended consequence of using the real live interface.
 
 ---
 
