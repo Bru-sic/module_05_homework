@@ -1,7 +1,12 @@
+# NewForecastTools.py sourced from the experimental tools folder under "01-Lessons/05-APIs/3/New Tools (Experimental)"
+# Latest update to the forecast tools has been pushed this to the week 5, day 3 folder.
+# Switched from a Volatility Drift and Shock monte carlo model to the Geometric Brownian Motion (GBM) that is used in the original function.
+
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import gc
+import plotly.graph_objects as go
 
 class MCSimulation:
     """
@@ -36,7 +41,7 @@ class MCSimulation:
 
     def calc_cumulative_return(self, clear_previous=True):
         """
-        Calculates the cumulative return using Monte Carlo simulation.
+        Calculates the cumulative return using Monte Carlo simulation with GBM.
         """
         # Clear previous simulations to free up memory
         if clear_previous:
@@ -47,36 +52,37 @@ class MCSimulation:
         number_of_tickers = len(self.daily_returns.columns)
         mean_return = self.daily_returns.mean().values
         std_return = self.daily_returns.std().values
-        
-        # Generate simulations
-        drift = mean_return - (0.5 * std_return**2)
-        
-        # Generate shocks
-        shocks = np.random.normal(0, 1, (self.nTrading, self.nSim, number_of_tickers))
-        for ticker in range(number_of_tickers):
-            shocks[:, :, ticker] = shocks[:, :, ticker] * std_return[ticker] + drift[ticker]
-        
-        # Calculate the cumulative return paths using the shocks
-        price_paths = np.exp(np.cumsum(shocks, axis=0))
-        start_prices = self.daily_returns.iloc[-1].values
-        price_paths = price_paths * start_prices
-        
-        # Convert price paths to returns and calculate the cumulative returns
-        simulated_returns = price_paths[:-1] / price_paths[1:] - 1
+
+        # Get the last prices
+        last_prices = self.daily_returns.iloc[-1].values
+
+        # Initialize an array to hold the simulated prices
+        simulated_prices = np.zeros((self.nTrading, self.nSim, number_of_tickers))
+        simulated_prices[0] = last_prices
+
+        # Simulate the stock prices using GBM
+        for t in range(1, self.nTrading):
+            for s in range(number_of_tickers):
+                simulated_prices[t, :, s] = simulated_prices[t-1, :, s] * (1 + np.random.normal(mean_return[s], std_return[s], self.nSim))
+
+        # Convert simulated prices to returns
+        simulated_returns = simulated_prices[1:] / simulated_prices[:-1] - 1
+
+        # Calculate the cumulative returns
         cumulative_returns = np.cumprod(1 + simulated_returns, axis=0)
-        
+
         # Average cumulative returns across tickers (assuming equal weights for simplicity)
         avg_cumulative_returns = np.mean(cumulative_returns, axis=2)
-        
+
         self.simulated_return = pd.DataFrame(avg_cumulative_returns)
         self.confidence_interval = self.simulated_return.iloc[-1].quantile([0.025, 0.975])
-        
-        return self.simulated_return
-    
 
+        return self.simulated_return
+
+    
     def plot_simulation(self):
         """
-        Plot the mean, median, and 95% confidence interval of the simulated stock trajectories.
+        Plot the mean, median, and 95% confidence interval of the simulated stock trajectories using Plotly.
         """
         if self.simulated_return is None:
             self.calc_cumulative_return()
@@ -87,30 +93,33 @@ class MCSimulation:
         lower_bound = self.simulated_return.quantile(0.025, axis=1)
         upper_bound = self.simulated_return.quantile(0.975, axis=1)
 
-        # Plotting
-        plt.figure(figsize=(10, 6))
-        mean_return.plot(label="Mean", color="blue")
-        median_return.plot(label="Median", color="green")
-        plt.fill_between(self.simulated_return.index, lower_bound, upper_bound, color="gray", alpha=0.5, label="95% Confidence Interval")
-        
-        plt.title(f"{self.nSim} Simulations of Cumulative Portfolio Return Trajectories Over {self.nTrading} Trading Days")
-        plt.legend()
-        plt.show()
+        # Plotting with Plotly
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=mean_return.index, y=mean_return, mode='lines', name='Mean', line=dict(color='blue')))
+        fig.add_trace(go.Scatter(x=median_return.index, y=median_return, mode='lines', name='Median', line=dict(color='green')))
+        fig.add_trace(go.Scatter(x=lower_bound.index, y=lower_bound, fill='tonexty', mode='none', name='Lower 95% CI'))
+        fig.add_trace(go.Scatter(x=upper_bound.index, y=upper_bound, fill='tonexty', mode='none', name='Upper 95% CI'))
 
+        fig.update_layout(title=f"{self.nSim} Simulations of Cumulative Portfolio Return Trajectories Over {self.nTrading} Trading Days", showlegend=True)
+        
+        return fig
 
     def plot_distribution(self):
         """
-        Plot the distribution of cumulative returns.
+        Plot the distribution of cumulative returns using Plotly.
         """
         if self.simulated_return is None:
             self.calc_cumulative_return()
+
+        # Plotting with Plotly
+        fig = go.Figure()
+        fig.add_trace(go.Histogram(x=self.simulated_return.iloc[-1], name='Returns', opacity=0.75, nbinsx=10))
+        fig.add_shape(dict(type='line', x0=self.confidence_interval.iloc[0], x1=self.confidence_interval.iloc[0], y0=0, y1=1, yref='paper', line=dict(color='red')))
+        fig.add_shape(dict(type='line', x0=self.confidence_interval.iloc[1], x1=self.confidence_interval.iloc[1], y0=0, y1=1, yref='paper', line=dict(color='red')))
+
+        fig.update_layout(title=f"Distribution of Final Cumulative Returns Across All {self.nSim} Simulations", showlegend=True)
         
-        title = f"Distribution of Final Cumulative Returns Across All {self.nSim} Simulations"
-        plt.hist(self.simulated_return.iloc[-1], bins=10, density=True, alpha=0.75)
-        plt.axvline(self.confidence_interval.iloc[0], color='r')
-        plt.axvline(self.confidence_interval.iloc[1], color='r')
-        plt.title(title)
-        plt.show()
+        return fig
 
     def summarize_cumulative_return(self):
         """
