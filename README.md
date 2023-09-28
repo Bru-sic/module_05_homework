@@ -12,7 +12,34 @@ This assignment focuses on Python Requests (apis) to fetch data from trading pla
 
 Thanks and gratitude to the above sites for their services and data.
 
-Further details of the assignment are available [here in Briefing.md](./Briefing.md)
+# Briefing
+Further details on the assignment briefing are available in [Briefing.md](./Briefing.md)
+
+
+# Solutions
+
+## Solution 1 - Using original template and MC library
+This solution is based completely on original starter code template and the original Monte Carlo simulator library provided with the assignment.
+
+Files associated with this solution:   
+* [iPython (Jupyter) Notebook: Starter_Code/financial-planner.ipynb](Starter_Code/financial-planner.ipynb)   
+* [Original Monte Carlo Simulator Library: Starter_Code/MCForecastTools.py](Starter_Code/financial-planner.ipynb)   
+
+
+
+## Solution 2 - Alternate solution
+
+The base code has been refactored and improved:
+1. Duplicate code was moved to a new function `monte_carlo_simulation_analysis`.
+2. Introduced use of a dictionary to store stock data and moved away from naming variables with specific stock code (eg. btc_price, agg_value etc).
+3. Adopted use of the new Monte Carlo library for significantly faster performance which also resolves the occasional `PerformanceWarning: DataFrame is highly fragmented` warning message.
+4. Added functionality to get the most recent data from Alpaca markets, resolving the issue of getting no data if the date selected was not a trading day.
+
+
+Files associated with this solution:   
+* [iPython (Jupyter) Notebook: Starter_Code/financial-planner-NEW.ipynb](Starter_Code/financial-planner.ipynb)   
+* [New Forecast Tools: Starter_Code/NewForecastTools.py](Starter_Code/NewForecastTools.py)   
+
 
 # Pre-requisites
 
@@ -24,11 +51,13 @@ ALPACA_SECRET_KEY = "<VALUE GOES HERE>"
 NASDAQ_API_KEY = "<VALUE GOES HERE>"
 ```
 
-You need to replace `<VALUE GOES HERE>` with the relevant keys obtained from YOUR accounts on the following site:
+You need to replace `<VALUE GOES HERE>` with the relevant keys obtained from YOUR accounts on the following sites:
 * [Alpaca Markets](https://app.alpaca.markets)
 * [data.nasdaq.com](https://data.nasdaq.com)
 
-Note: the scripts in this project force the Alpaca Markets api base url to the paper trading environment "paper-api.alpaca.markets".
+
+Note: Although the scripts use get_bars for Alpaca Markets, as a precaution, the code has forcibly set the Alpaca Markets api Base URL to the paper trading environment "paper-api.alpaca.markets", to avoid any unintended consequence if using the real live interface.
+
 ---
 
 
